@@ -70,6 +70,16 @@ class MainViewModelTests: XCTestCase {
       XCTAssertEqual(sut.state.requestRecordError, nil)
       XCTAssertEqual(sut.state.loadRecordError, nil)
    }
+   
+   
+   @MainActor func test_event_showTabEventUpdatesStateWithCurrentTab() {
+      let (sut, _, _) = makeSUT()
+      
+      sut.onEvent(.showTab(Tab.map))
+      XCTAssertEqual(sut.state.currectTab, Tab.map)
+   }
+   
+  
 
    
    // MARK: - Helpers
