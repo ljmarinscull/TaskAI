@@ -48,13 +48,32 @@ final class MainViewModel {
          self.localDataStore = localDataStore
       }
    
+   @MainActor
    func onEvent(_ event: MainViewEvent) {
       switch event {
       case .showTab(let tab):
          state.currectTab = tab
+      case .request:
+         makeRequest()
       default: break
       }
    }
+   
+      @MainActor
+      private func makeRequest() {
+         state.isLoading = true
+         state.requestRecordError = nil
+         apiService.request{[weak self] result in
+            guard let self else { return }
+            state.isLoading = false
+            switch result {
+            case  .success(let response):
+               state.currentRequest = response
+            case .failure(let error):
+               state.requestRecordError = error.localizedDescription
+            }
+         }
+      }
 }
 
 class MainViewModelTests: XCTestCase {
@@ -79,7 +98,23 @@ class MainViewModelTests: XCTestCase {
       XCTAssertEqual(sut.state.currectTab, Tab.map)
    }
    
-  
+   @MainActor func test_event_requestUpdatesStateWithResquestOn200HttpResponse() {
+      let (sut, api, _) = makeSUT()
+      let response = RequestResponse(
+         id: 1,
+         coordinate: Coordinate(latitude: 51.509, longitude: -0.12),
+         weather: "Windy",
+         main: Main(temp: 10.0, feelsLike: 9.0, tempMin: 5.0, tempMax: 12.0, pressure: 30, humidity: 50),
+         wind: Wind(speed: 10, deg: 10),
+         clouds: Clouds(all: 100),
+         dt: 121221,
+         name: "London"
+      )
+      
+      sut.onEvent(.request)
+      api.complete(with: response, at: 0)
+      XCTAssertEqual(sut.state.currentRequest, response)
+   }
 
    
    // MARK: - Helpers
