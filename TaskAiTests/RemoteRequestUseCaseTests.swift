@@ -8,196 +8,6 @@
 import XCTest
 @testable import TaskAi
 
-public enum HTTPClientResult {
-   case success(Data, HTTPURLResponse)
-   case failure(Error)
-}
-
-public protocol HTTPClient {
-   func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void)
-}
-
-
-public struct RequestResponse: Equatable {
-   let id: Int
-   let coordinate: Coordinate
-   let weather: String
-   let main: Main
-   let wind: Wind
-   let clouds: Clouds
-   let dt: Int
-   let name: String
-}
-
-struct Clouds: Equatable {
-   let all: Int
-}
-
-struct Coordinate: Equatable {
-   let longitude: Double
-   let latitude: Double
-   
-   init(lat: Double, lon: Double) {
-      latitude = lat
-      longitude = lon
-   }
-}
-
-struct Main: Equatable {
-   let temp, feelsLike, tempMin, tempMax: Double
-   let pressure, humidity: Int
-   
-   init(temp: Double, feelsLike: Double, tempMin: Double, tempMax: Double, pressure: Int, humidity: Int) {
-      self.temp = temp
-      self.feelsLike = feelsLike
-      self.tempMin = tempMin
-      self.tempMax = tempMax
-      self.pressure = pressure
-      self.humidity = humidity
-   }
-}
-
-struct Sys: Equatable {
-   let type, id: Int
-   let country: String
-   let sunrise, sunset: Int
-}
-
-struct Weather: Equatable {
-   let id: Int
-   let main, description, icon: String
-}
-
-struct Wind: Equatable {
-   let speed, deg: Int
-}
-
-public enum RequestResult {
-   case success(RequestResponse)
-   case failure(Error)
-}
-
-protocol ApiService {
-   func request(completion: @escaping (RequestResult) -> Void)
-}
-
-class RemoteApiService: ApiService {
-   let url: URL
-   let client: HTTPClient
-   
-   public enum Error: Swift.Error {
-      case connectivity
-      case invalidRequest
-      case invalidData
-   }
-   
-   public typealias Result = RequestResult
-   
-   init (url: URL, client: HTTPClient) {
-      self.url = url
-      self.client = client
-   }
-   
-   func request(completion: @escaping (Result) -> Void){
-      client.get(from: url){[weak self] result in
-         guard self != nil else {
-            return
-         }
-         
-         switch result {
-         case let .success(data, response):
-            completion(RequestMapper.map(data, and: response))
-         case .failure:
-            completion(.failure(Error.connectivity))
-         }
-      }
-   }
-}
-
-fileprivate class RequestMapper {
-   private static let OK_STATUS_CODE = 200
-   
-   private init() {}
-   
-   struct Root: Codable {
-      let coord: CoordKeys
-      let weather: [WeatherKeys]
-      let base: String
-      let main: MainKeys
-      let visibility: Int
-      let wind: WindKeys
-      let clouds: Clouds
-      let dt: Int
-      let sys: SysKeys
-      let timezone, id: Int
-      let name: String
-      let cod: Int
-      
-      var requestResponse: RequestResponse{
-         RequestResponse(
-            id: id,
-            coordinate: .init(lat: coord.lat, lon: coord.lon),
-            weather: weather.map{ $0.main }.joined(separator: ", "),
-            main: .init(temp: main.temp, feelsLike: main.feelsLike, tempMin: main.tempMin, tempMax: main.tempMax, pressure: main.pressure, humidity: main.humidity),
-            wind: .init(speed: wind.speed, deg: wind.deg),
-            clouds: .init(all: clouds.all),
-            dt: dt,
-            name: name
-         )
-      }
-   }
-   
-   struct Clouds: Codable {
-      let all: Int
-   }
-   
-   struct CoordKeys: Codable {
-      let lon, lat: Double
-   }
-   
-   struct MainKeys: Codable {
-      let temp, feelsLike, tempMin, tempMax: Double
-      let pressure, humidity, seaLevel, grndLevel: Int
-      
-      enum CodingKeys: String, CodingKey {
-         case temp
-         case feelsLike = "feels_like"
-         case tempMin = "temp_min"
-         case tempMax = "temp_max"
-         case pressure, humidity
-         case seaLevel = "sea_level"
-         case grndLevel = "grnd_level"
-      }
-   }
-   
-   struct SysKeys: Codable {
-      let type, id: Int
-      let country: String
-      let sunrise, sunset: Int
-   }
-   
-   struct WeatherKeys: Codable {
-      let id: Int
-      let main, description, icon: String
-   }
-   
-   struct WindKeys: Codable {
-      let speed, deg: Int
-   }
-   
-   static func map(_ data: Data, and response: HTTPURLResponse) -> RequestResult {
-      guard response.statusCode == OK_STATUS_CODE else {
-         return .failure(RemoteApiService.Error.invalidRequest)
-      }
-      
-      guard let root = try? JSONDecoder().decode(Root.self, from: data) else {
-         return .failure(RemoteApiService.Error.invalidData)
-      }
-      
-      return .success(root.requestResponse)
-   }
-}
-
 class RemoteRequestUseCaseTests: XCTestCase {
    
    func test_init_doesNotRequestDataFromURL() {
@@ -219,7 +29,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
    func test_request_deliversConnectivityErrorOnClientError() {
       let (sut, client) = makeSUT()
       
-      expect(sut, toCompleteWith: .failure(.connectivity), when: {
+      expect(sut, toCompleteWith: failure(.connectivity), when: {
          let clientError = NSError(domain: "Test", code: 0)
          client.complete(with: clientError)
       })
@@ -231,7 +41,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
       let samples = [199, 201, 300, 400, 500]
       
       samples.enumerated().forEach { index, code in
-         expect(sut, toCompleteWith: .failure(.invalidRequest), when: {
+         expect(sut, toCompleteWith: failure(.invalidRequest), when: {
             let json = makeResponseJSONWith([:])
             client.complete(withStatusCode: code, data: json, at: index)
          })
@@ -241,7 +51,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
    func test_register_deliversInvalidDataErrorOn200HTTPResponseWithInvalidJSON() {
       let (sut, client) = makeSUT()
       
-      expect(sut, toCompleteWith: .failure(.invalidData), when: {
+      expect(sut, toCompleteWith: failure(.invalidData), when: {
          let invalidJSON = Data("invalid json".utf8)
          client.complete(withStatusCode: 200, data: invalidJSON)
       })
@@ -250,7 +60,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
    func test_register_deliversInvalidDataErrorOn200HTTPResponseWithPartiallyValidJSON() {
       let (sut, client) = makeSUT()
       
-      expect(sut, toCompleteWith: .failure(.invalidData), when: {
+      expect(sut, toCompleteWith: failure(.invalidData), when: {
          let json = makeResponseJSONWith(["latitude": 0.0, "longitude": 0.0])
          client.complete(withStatusCode: 200, data: json)
       })
@@ -314,6 +124,11 @@ class RemoteRequestUseCaseTests: XCTestCase {
       return (sut, client)
    }
    
+   private func failure(_ error: RemoteApiService.Error) -> RemoteApiService.Result {
+      .failure(error)
+   }
+   
+   
    private func makeMain() -> [String: Any] {
       [
          "temp": 56.77,
@@ -357,9 +172,9 @@ class RemoteRequestUseCaseTests: XCTestCase {
       
       let model = RequestResponse(
          id: id,
-         coordinate: .init(lat: coord["lat"] as! Double, lon: coord["lon"] as! Double),
+         coordinate: Coordinate(latitude: coord["lat"] as! Double, longitude: coord["lon"] as! Double),
          weather: weatherStr,
-         main: .init(
+         main: Main(
             temp: main["temp"] as! Double,
             feelsLike: main["feels_like"] as! Double,
             tempMin: main["temp_min"] as! Double,
@@ -367,7 +182,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
             pressure: main["pressure"] as! Int,
             humidity: main["humidity"] as! Int
          ),
-         wind: .init(speed: wind["speed"] as! Int, deg: wind["deg"] as! Int),
+         wind: Wind(speed: wind["speed"] as! Int, deg: wind["deg"] as! Int),
          clouds: Clouds(all: clouds["all"] as! Int),
          dt: dt,
          name: name

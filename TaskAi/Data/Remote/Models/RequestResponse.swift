@@ -17,21 +17,16 @@ public struct RequestResponse: Equatable {
    let name: String
 }
 
-struct Clouds: Equatable {
+public struct Clouds: Equatable {
    let all: Int
 }
 
-struct Coordinate: Equatable {
-   let longitude: Double
+public struct Coordinate: Equatable {
    let latitude: Double
-   
-   init(lat: Double, lon: Double) {
-      latitude = lat
-      longitude = lon
-   }
+   let longitude: Double
 }
 
-struct Main: Equatable {
+public struct Main: Equatable {
    let temp, feelsLike, tempMin, tempMax: Double
    let pressure, humidity: Int
    
@@ -45,17 +40,17 @@ struct Main: Equatable {
    }
 }
 
-struct Sys: Equatable {
+public struct Sys: Equatable {
    let type, id: Int
    let country: String
    let sunrise, sunset: Int
 }
 
-struct Weather: Equatable {
+public struct Weather: Equatable {
    let id: Int
    let main, description, icon: String
 }
 
-struct Wind: Equatable {
+public struct Wind: Equatable {
    let speed, deg: Int
 }

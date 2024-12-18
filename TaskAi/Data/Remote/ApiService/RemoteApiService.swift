@@ -61,7 +61,7 @@ private class RequestMapper {
       var requestResponse: RequestResponse{
          RequestResponse(
             id: id,
-            coordinate: Coordinate(lat: coord.lat, lon: coord.lon),
+            coordinate: Coordinate(latitude: coord.lat, longitude: coord.lat),
             weather: weather.map{ $0.main }.joined(separator: ", "),
             main: Main(temp: main.temp, feelsLike: main.feelsLike, tempMin: main.tempMin, tempMax: main.tempMax, pressure: main.pressure, humidity: main.humidity),
             wind: Wind(speed: wind.speed, deg: wind.deg),

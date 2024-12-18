@@ -10,6 +10,6 @@ public enum RequestResult {
    case failure(Error)
 }
 
-protocol ApiService {
+public protocol ApiService {
    func request(completion: @escaping (RequestResult) -> Void)
 }
