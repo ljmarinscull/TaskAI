@@ -27,7 +27,8 @@ class RemoteApiService: ApiService {
    }
 
    func request(completion: @escaping (Result<Response, Error>) -> Void){
-      
+         client.get(from: url){ result in
+         }
    }
 }
 
@@ -37,6 +38,16 @@ class RemoteRequestUseCaseTests: XCTestCase {
       let (_, client) = makeSUT()
 
       XCTAssertTrue(client.requestedURLs.isEmpty)
+   }
+   
+   func test_requestTwice_requestsDataFromURLTwice() {
+      let url = URL(string: "https://a-given-url.com")!
+      let (sut, client) = makeSUT(url: url)
+   
+      sut.request { _ in }
+      sut.request { _ in }
+   
+      XCTAssertEqual(client.requestedURLs, [url, url])
    }
    
    // MARK: - Helpers
