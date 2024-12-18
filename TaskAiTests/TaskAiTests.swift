@@ -17,17 +17,45 @@ public protocol HTTPClient {
    func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void)
 }
 
+
+public struct RequestResponse : Equatable {
+
+}
+
+
+public enum RequestResult {
+   case success(RequestResponse)
+   case failure(Error)
+}
+
+protocol ApiService {
+   func request(completion: @escaping (RequestResult) -> Void)
+}
+
 class RemoteApiService: ApiService {
    let url: URL
    let client: HTTPClient
+   
+   public enum Error: Swift.Error {
+      case connectivity
+      case invalidData
+   }
+   
+   public typealias Result = RequestResult
    
    init (url: URL, client: HTTPClient) {
       self.url = url
       self.client = client
    }
 
-   func request(completion: @escaping (Result<Response, Error>) -> Void){
+   func request(completion: @escaping (Result) -> Void){
          client.get(from: url){ result in
+            switch result {
+            case .failure:
+               completion(.failure(Error.connectivity))
+            case .success(_, _):
+               print("Request successful")
+            }
          }
    }
 }
@@ -48,6 +76,15 @@ class RemoteRequestUseCaseTests: XCTestCase {
       sut.request { _ in }
    
       XCTAssertEqual(client.requestedURLs, [url, url])
+   }
+   
+   func test_request_deliversConnectivityErrorOnClientError() {
+      let (sut, client) = makeSUT()
+
+      expect(sut, toCompleteWith: .failure(.connectivity), when: {
+         let clientError = NSError(domain: "Test", code: 0)
+         client.complete(with: clientError)
+      })
    }
    
    // MARK: - Helpers
