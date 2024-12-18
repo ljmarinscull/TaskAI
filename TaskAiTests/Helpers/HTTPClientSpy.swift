@@ -6,6 +6,7 @@
 //
 import Foundation
 import XCTest
+import TaskAi
 
 class HTTPClientSpy: HTTPClient {
    private var messages = [(url: URL, completion: (HTTPClientResult) -> Void)]()
