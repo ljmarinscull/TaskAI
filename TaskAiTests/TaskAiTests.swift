@@ -30,12 +30,12 @@ public struct RequestResponse: Equatable {
 }
 
 struct Clouds: Equatable {
-    let all: Int
+   let all: Int
 }
 
 struct Coordinate: Equatable {
-    let longitude: Double
-    let latitude: Double
+   let longitude: Double
+   let latitude: Double
    
    init(lat: Double, lon: Double) {
       latitude = lat
@@ -44,8 +44,8 @@ struct Coordinate: Equatable {
 }
 
 struct Main: Equatable {
-    let temp, feelsLike, tempMin, tempMax: Double
-    let pressure, humidity: Int
+   let temp, feelsLike, tempMin, tempMax: Double
+   let pressure, humidity: Int
    
    init(temp: Double, feelsLike: Double, tempMin: Double, tempMax: Double, pressure: Int, humidity: Int) {
       self.temp = temp
@@ -58,18 +58,18 @@ struct Main: Equatable {
 }
 
 struct Sys: Equatable {
-    let type, id: Int
-    let country: String
-    let sunrise, sunset: Int
+   let type, id: Int
+   let country: String
+   let sunrise, sunset: Int
 }
 
 struct Weather: Equatable {
-    let id: Int
-    let main, description, icon: String
+   let id: Int
+   let main, description, icon: String
 }
 
 struct Wind: Equatable {
-    let speed, deg: Int
+   let speed, deg: Int
 }
 
 public enum RequestResult {
@@ -87,6 +87,7 @@ class RemoteApiService: ApiService {
    
    public enum Error: Swift.Error {
       case connectivity
+      case invalidRequest
       case invalidData
    }
    
@@ -96,37 +97,41 @@ class RemoteApiService: ApiService {
       self.url = url
       self.client = client
    }
-
+   
    func request(completion: @escaping (Result) -> Void){
-         client.get(from: url){ result in
-            switch result {
-            case let .success(data, response):
-               completion(RequestMapper.map(data, and: response))
-            case .failure:
-               completion(.failure(Error.connectivity))
-            }
+      client.get(from: url){[weak self] result in
+         guard self != nil else {
+            return
          }
+         
+         switch result {
+         case let .success(data, response):
+            completion(RequestMapper.map(data, and: response))
+         case .failure:
+            completion(.failure(Error.connectivity))
+         }
+      }
    }
 }
 
 fileprivate class RequestMapper {
    private static let OK_STATUS_CODE = 200
-
+   
    private init() {}
-
+   
    struct Root: Codable {
-       let coord: CoordKeys
-       let weather: [WeatherKeys]
-       let base: String
-       let main: MainKeys
-       let visibility: Int
-       let wind: WindKeys
-       let clouds: Clouds
-       let dt: Int
-       let sys: SysKeys
-       let timezone, id: Int
-       let name: String
-       let cod: Int
+      let coord: CoordKeys
+      let weather: [WeatherKeys]
+      let base: String
+      let main: MainKeys
+      let visibility: Int
+      let wind: WindKeys
+      let clouds: Clouds
+      let dt: Int
+      let sys: SysKeys
+      let timezone, id: Int
+      let name: String
+      let cod: Int
       
       var requestResponse: RequestResponse{
          RequestResponse(
@@ -141,97 +146,166 @@ fileprivate class RequestMapper {
          )
       }
    }
-
+   
    struct Clouds: Codable {
-       let all: Int
+      let all: Int
    }
-
+   
    struct CoordKeys: Codable {
-       let lon, lat: Double
+      let lon, lat: Double
    }
-
+   
    struct MainKeys: Codable {
-       let temp, feelsLike, tempMin, tempMax: Double
-       let pressure, humidity, seaLevel, grndLevel: Int
-
-       enum CodingKeys: String, CodingKey {
-           case temp
-           case feelsLike = "feels_like"
-           case tempMin = "temp_min"
-           case tempMax = "temp_max"
-           case pressure, humidity
-           case seaLevel = "sea_level"
-           case grndLevel = "grnd_level"
-       }
+      let temp, feelsLike, tempMin, tempMax: Double
+      let pressure, humidity, seaLevel, grndLevel: Int
+      
+      enum CodingKeys: String, CodingKey {
+         case temp
+         case feelsLike = "feels_like"
+         case tempMin = "temp_min"
+         case tempMax = "temp_max"
+         case pressure, humidity
+         case seaLevel = "sea_level"
+         case grndLevel = "grnd_level"
+      }
    }
-
+   
    struct SysKeys: Codable {
-       let type, id: Int
-       let country: String
-       let sunrise, sunset: Int
+      let type, id: Int
+      let country: String
+      let sunrise, sunset: Int
    }
-
+   
    struct WeatherKeys: Codable {
-       let id: Int
-       let main, description, icon: String
+      let id: Int
+      let main, description, icon: String
    }
-
+   
    struct WindKeys: Codable {
-       let speed, deg: Int
+      let speed, deg: Int
    }
    
    static func map(_ data: Data, and response: HTTPURLResponse) -> RequestResult {
-      guard response.statusCode == OK_STATUS_CODE,
-         let root = try? JSONDecoder().decode(Root.self, from: data) else {
+      guard response.statusCode == OK_STATUS_CODE else {
+         return .failure(RemoteApiService.Error.invalidRequest)
+      }
+      
+      guard let root = try? JSONDecoder().decode(Root.self, from: data) else {
          return .failure(RemoteApiService.Error.invalidData)
       }
-
+      
       return .success(root.requestResponse)
    }
 }
 
 class RemoteRequestUseCaseTests: XCTestCase {
-
+   
    func test_init_doesNotRequestDataFromURL() {
       let (_, client) = makeSUT()
-
+      
       XCTAssertTrue(client.requestedURLs.isEmpty)
    }
    
    func test_requestTwice_requestsDataFromURLTwice() {
       let url = URL(string: "https://a-given-url.com")!
       let (sut, client) = makeSUT(url: url)
-   
+      
       sut.request { _ in }
       sut.request { _ in }
-   
+      
       XCTAssertEqual(client.requestedURLs, [url, url])
    }
    
    func test_request_deliversConnectivityErrorOnClientError() {
       let (sut, client) = makeSUT()
-
+      
       expect(sut, toCompleteWith: .failure(.connectivity), when: {
          let clientError = NSError(domain: "Test", code: 0)
          client.complete(with: clientError)
       })
    }
    
-   func test_load_deliversInvalidDataErrorOnNon200HTTPResponse() {
+   func test_register_deliversInvalidDataErrorOnNon200HTTPResponse() {
       let (sut, client) = makeSUT()
-
+      
       let samples = [199, 201, 300, 400, 500]
-
+      
       samples.enumerated().forEach { index, code in
-         expect(sut, toCompleteWith: .failure(.invalidData), when: {
-            let json = makeItemsJSON(["latitide": "", "longitude": ""])
+         expect(sut, toCompleteWith: .failure(.invalidRequest), when: {
+            let json = makeResponseJSONWith([:])
             client.complete(withStatusCode: code, data: json, at: index)
          })
       }
    }
    
+   func test_register_deliversInvalidDataErrorOn200HTTPResponseWithInvalidJSON() {
+      let (sut, client) = makeSUT()
+      
+      expect(sut, toCompleteWith: .failure(.invalidData), when: {
+         let invalidJSON = Data("invalid json".utf8)
+         client.complete(withStatusCode: 200, data: invalidJSON)
+      })
+   }
+   
+   func test_register_deliversInvalidDataErrorOn200HTTPResponseWithPartiallyValidJSON() {
+      let (sut, client) = makeSUT()
+      
+      expect(sut, toCompleteWith: .failure(.invalidData), when: {
+         let json = makeResponseJSONWith(["latitude": 0.0, "longitude": 0.0])
+         client.complete(withStatusCode: 200, data: json)
+      })
+   }
+   
+   func test_register_deliversSuccessResponseOn200HTTPResponseWithJSON() {
+      let (sut, client) = makeSUT()
+      
+      let (model, json) = makeItemsFullJSON(
+         coord: ["lat" : 12.3456789, "lon" : 98.7654321],
+         weather: [
+            makeWeather(id: 1, main: "Windy", description: "windy", icon: "wind")
+         ],
+         base: "stations",
+         main: makeMain(),
+         visibility: 1.0,
+         wind: [
+            "speed": 10,
+            "deg": 45
+         ],
+         clouds: ["all": 100],
+         dt: 819128,
+         sys: [
+            "type": 2,
+            "id": 2015175,
+            "country": "US",
+            "sunrise": 1734526075,
+            "sunset": 1734562722
+         ],
+         timezone: -12829,
+         name: "Mexico",
+         id: 1
+      )
+      
+      expect(sut, toCompleteWith: .success(model), when: {
+         client.complete(withStatusCode: 200, data: convertResponseJSONToData(json))
+      })
+   }
+   
+   func test_register_doesNotDeliverResultAfterSUTInstanceHasBeenDeallocated() {
+      let url = URL(string: "http://any-url.com")!
+      let client = HTTPClientSpy()
+      var sut: ApiService? = RemoteApiService(url: url, client: client)
+      
+      var capturedResults = [RemoteApiService.Result]()
+      sut?.request{ capturedResults.append($0) }
+      
+      sut = nil
+      client.complete(withStatusCode: 200, data: makeResponseJSONWith([:]))
+      
+      XCTAssertTrue(capturedResults.isEmpty)
+   }
+   
    // MARK: - Helpers
-
+   
    private func makeSUT(url: URL = URL(string: "https://a-url.com")!, file: StaticString = #filePath, line: UInt = #line) -> (sut: RemoteApiService, client: HTTPClientSpy) {
       let client = HTTPClientSpy()
       let sut = RemoteApiService(url: url, client: client)
@@ -240,46 +314,128 @@ class RemoteRequestUseCaseTests: XCTestCase {
       return (sut, client)
    }
    
-   private func makeItemsJSON(_ items: [String: Any]) -> Data {
+   private func makeMain() -> [String: Any] {
+      [
+         "temp": 56.77,
+         "feels_like": 56.84,
+         "temp_min": 55.98,
+         "temp_max": 58.95,
+         "pressure": 1023,
+         "humidity": 100,
+         "sea_level": 1023,
+         "grnd_level": 1021
+      ]
+   }
+   
+   private func makeWeather(id: Int, main: String, description: String, icon: String) -> [String: Any] {
+      [
+         "id": id,
+         "main": main,
+         "description": description,
+         "icon": icon
+      ]
+   }
+   
+   private func makeItemsFullJSON(
+      coord: [String: Any],
+      weather: [[String: Any]],
+      base: String,
+      main: [String:Any],
+      visibility: Double,
+      wind: [String: Any],
+      clouds: [String: Any],
+      dt: Int,
+      sys: [String: Any],
+      timezone: Int,
+      name: String,
+      id: Int
+   ) -> (model: RequestResponse, json: [String: Any]) {
+      
+      let weatherStr = weather.map{
+         $0["main"] as! String
+      }.joined(separator: ", ")
+      
+      let model = RequestResponse(
+         id: id,
+         coordinate: .init(lat: coord["lat"] as! Double, lon: coord["lon"] as! Double),
+         weather: weatherStr,
+         main: .init(
+            temp: main["temp"] as! Double,
+            feelsLike: main["feels_like"] as! Double,
+            tempMin: main["temp_min"] as! Double,
+            tempMax: main["temp_max"] as! Double,
+            pressure: main["pressure"] as! Int,
+            humidity: main["humidity"] as! Int
+         ),
+         wind: .init(speed: wind["speed"] as! Int, deg: wind["deg"] as! Int),
+         clouds: Clouds(all: clouds["all"] as! Int),
+         dt: dt,
+         name: name
+      )
+      
+      let json: [String: Any] =
+      [
+         "coord": coord,
+         "weather": weather,
+         "base": "stations",
+         "main": main,
+         "visibility": 482,
+         "wind": wind,
+         "clouds": clouds,
+         "dt": dt,
+         "sys": sys,
+         "timezone": timezone,
+         "id": id,
+         "name": name,
+         "cod": 200
+      ]
+      return (model: model, json: json)
+   }
+   
+   private func convertResponseJSONToData(_ json: [String: Any]) -> Data {
+      return try! JSONSerialization.data(withJSONObject: json)
+   }
+   
+   private func makeResponseJSONWith(_ items: [String: Any]) -> Data {
       let json: [String : Any] = [
          "coord": items,
-         "weather": [
-                "id": 701,
-                "main": "Mist",
-                "description": "mist",
-                "icon": "50n"
-            ],
-            "base": "stations",
-            "main":[
-                "temp": 56.77,
-                "feels_like": 56.84,
-                "temp_min": 55.98,
-                "temp_max": 58.95,
-                "pressure": 1023,
-                "humidity": 100,
-                "sea_level": 1023,
-                "grnd_level": 1021
-            ],
-            "visibility": 4828,
-            "wind": [
-                "speed": 0,
-                "deg": 0
-            ],
-            "clouds": [
-                "all": 100
-            ],
-            "dt": 1734525847,
-            "sys": [
-                "type": 2,
-                "id": 2015175,
-                "country": "US",
-                "sunrise": 1734526075,
-                "sunset": 1734562722
-            ],
-            "timezone": -21600,
-            "id": 4429197,
-            "name": "Landon",
-            "cod": 200
+         "weather": [[
+            "id": 701,
+            "main": "Mist",
+            "description": "mist",
+            "icon": "50n"
+         ]],
+         "base": "stations",
+         "main":[
+            "temp": 56.77,
+            "feels_like": 56.84,
+            "temp_min": 55.98,
+            "temp_max": 58.95,
+            "pressure": 1023,
+            "humidity": 100,
+            "sea_level": 1023,
+            "grnd_level": 1021
+         ],
+         "visibility": 4828,
+         "wind": [
+            "speed": 0,
+            "deg": 0
+         ],
+         "clouds": [
+            "all": 100
+         ],
+         "dt": 1734525847,
+         "sys": [
+            "type": 2,
+            "id": 2015175,
+            "country": "US",
+            "sunrise": 1734526075,
+            "sunset": 1734562722
+         ],
+         "timezone": -21600,
+         "id": 4429197,
+         "name": "Landon",
+         "cod": 200
       ]
       return try! JSONSerialization.data(withJSONObject: json)
    }
