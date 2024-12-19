@@ -31,7 +31,7 @@ class ApiServiceStub: ApiService {
       messages[index].completion(.failure(error))
    }
 
-   func complete(with response: RequestResponse, at index: Int = 0, file: StaticString = #filePath, line: UInt = #line) {
+   func complete(with response: LocalWeatherData, at index: Int = 0, file: StaticString = #filePath, line: UInt = #line) {
       guard requestedURLs.count > index else {
          return XCTFail("Can't complete request never made", file: file, line: line)
       }

@@ -12,7 +12,7 @@ public enum HTTPClientResult {
 }
 
 public protocol HTTPClient {
-   func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void)
+   func get(from url: URLRequest, completion: @escaping (HTTPClientResult) -> Void)
 }
 
 struct UnExpectedValuesRepresentation: Error{}
@@ -23,7 +23,7 @@ class URLSessionHTTPClient: HTTPClient {
       self.session = session
    }
    
-   func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void){
+   func get(from url: URLRequest, completion: @escaping (HTTPClientResult) -> Void){
       session.dataTask(with: url) { data, response, error in
          if let error {
             completion(.failure(error))

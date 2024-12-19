@@ -9,13 +9,12 @@ import Foundation
 @testable import TaskAi
 
 class DataStoreServiceStub: DataStoreService {
-   func loadAllRequestResponse(completion: @escaping (LoadResquestResult) -> Void) {
+   
+   func insert(data: TaskAi.LocalWeatherData, date: Date, completion: @escaping ((any Error)?) -> Void) {
       
    }
    
-   
-   func save(record: RequestResponse) {
+   func load(completion: @escaping (TaskAi.LoadResquestResult) -> Void) {
       
    }
-
 }

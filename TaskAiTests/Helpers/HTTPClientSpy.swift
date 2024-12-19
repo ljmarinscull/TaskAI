@@ -9,18 +9,14 @@ import XCTest
 import TaskAi
 
 class HTTPClientSpy: HTTPClient {
-   private var messages = [(url: URL, completion: (HTTPClientResult) -> Void)]()
+   private var messages = [(url: URLRequest, completion: (HTTPClientResult) -> Void)]()
 
    var requestedURLs: [URL] {
-      return messages.map { $0.url }
+      return messages.compactMap { $0.url.url }
    }
 
-   func get(from url: URL, completion: @escaping (HTTPClientResult) -> Void) {
+   func get(from url: URLRequest, completion: @escaping (HTTPClientResult) -> Void) {
       messages.append((url, completion))
-   }
-   
-   func post(from url: URLRequest, completion: @escaping (HTTPClientResult) -> Void) {
-      messages.append((url.url!, completion))
    }
 
    func complete(with error: Error, at index: Int = 0, file: StaticString = #filePath, line: UInt = #line) {

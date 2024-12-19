@@ -6,7 +6,7 @@
 //
 
 public enum RequestResult {
-   case success(RequestResponse)
+   case success(LocalWeatherData)
    case failure(Error)
 }
 

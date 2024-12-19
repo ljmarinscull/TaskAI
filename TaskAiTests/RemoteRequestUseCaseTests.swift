@@ -94,7 +94,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
          name: "Mexico",
          id: 1
       )
-      
+
       expect(sut, toCompleteWith: .success(model), when: {
          client.complete(withStatusCode: 200, data: convertResponseJSONToData(json))
       })
@@ -164,28 +164,19 @@ class RemoteRequestUseCaseTests: XCTestCase {
       timezone: Int,
       name: String,
       id: Int
-   ) -> (model: RequestResponse, json: [String: Any]) {
+   ) -> (model: LocalWeatherData, json: [String: Any]) {
       
       let weatherStr = weather.map{
          $0["main"] as! String
       }.joined(separator: ", ")
       
-      let model = RequestResponse(
-         id: id,
-         coordinate: Coordinate(latitude: coord["lat"] as! Double, longitude: coord["lon"] as! Double),
+      let model = LocalWeatherData(
+         name: name,
+         latitude: coord["lat"] as! Double,
+         longitude: coord["lon"] as! Double,
          weather: weatherStr,
-         main: Main(
-            temp: main["temp"] as! Double,
-            feelsLike: main["feels_like"] as! Double,
-            tempMin: main["temp_min"] as! Double,
-            tempMax: main["temp_max"] as! Double,
-            pressure: main["pressure"] as! Int,
-            humidity: main["humidity"] as! Int
-         ),
-         wind: Wind(speed: wind["speed"] as! Int, deg: wind["deg"] as! Int),
-         clouds: Clouds(all: clouds["all"] as! Int),
-         dt: dt,
-         name: name
+         temp: main["temp"] as! Double,
+         humidity: main["humidity"] as! Int
       )
       
       let json: [String: Any] =
