@@ -6,3 +6,6 @@ Se realizó una app que cuenta con una vista principal y dos fragmentos. La app 
 - Para realizar las peticiones a la API se usó **URLSession**
 - La arquitectura para la presentación de la información utilizada es **MVI**
 - Para lograr el comunicacion del **Model** con la **View** se uso el framework **Observation**
+![IMG_1900](https://github.com/user-attachments/assets/8f694950-ce40-40f8-80ad-ded1c24772ee)
+![IMG_1901](https://github.com/user-attachments/assets/57628fcd-7e89-43c6-9115-f8184e12f21b)
+
