@@ -1,6 +1,6 @@
 //
-//  TaskAiTests.swift
-//  TaskAiTests
+//  RemoteRequestUseCaseTests.swift
+//  TaskAi
 //
 //  Created by Lazaro Jesus Marin Scull on 18.12.24.
 //
@@ -61,7 +61,7 @@ class RemoteRequestUseCaseTests: XCTestCase {
       let (sut, client) = makeSUT()
       
       expect(sut, toCompleteWith: failure(.invalidData), when: {
-         let json = makeResponseJSONWith(["latitude": 0.0, "longitude": 0.0])
+         let json = makeResponseJSONWith(["invalid key": 0.0, "lon": 0.0])
          client.complete(withStatusCode: 200, data: json)
       })
    }
@@ -127,7 +127,6 @@ class RemoteRequestUseCaseTests: XCTestCase {
    private func failure(_ error: RemoteApiService.Error) -> RemoteApiService.Result {
       .failure(error)
    }
-   
    
    private func makeMain() -> [String: Any] {
       [
