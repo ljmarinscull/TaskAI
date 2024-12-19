@@ -20,15 +20,10 @@ public enum MainViewEvent {
    case showTab(Tab), request, loadRecords
 }
 
-struct CoordinateMarkerData: Equatable {
-   let name: String
-   let coordinate: Coordinate
-}
-
 public struct MainState {
    var weatherDataListState: WeatherDataListState = .loading
-   var currentMarker: CoordinateMarkerData = .init(name: "Mexico City", coordinate: .init(latitude: 19.451054, longitude: -99.125519))// Mexico City Coordinates
-   var currectTab: Tab = .list
+   var currentMarker: CoordinateMarkerData = CoordinateMarkerData.defaultValue
+   var currentTab: Tab = .map
    var isLoading: Bool = false
    var isRequesting: Bool = false
    var requestRecordError: String? = nil
@@ -39,16 +34,16 @@ extension MainState {
    func copy(
       listState: WeatherDataListState? = nil,
       currentMarker: CoordinateMarkerData? = nil,
-      currectTab: Tab? = nil,
+      currentTab: Tab? = nil,
       isLoading: Bool? = nil,
       isRequesting: Bool? = nil,
-      requestRecordError: String? = nil,
-      loadRecordError: String? = nil
+      requestRecordError: String?? = nil,
+      loadRecordError: String?? = nil
    ) -> Self {
       .init(
          weatherDataListState: listState ?? self.weatherDataListState,
          currentMarker: currentMarker ?? self.currentMarker,
-         currectTab: currectTab ?? self.currectTab,
+         currentTab: currentTab ?? self.currentTab,
          isLoading: isLoading ?? self.isLoading,
          isRequesting: isRequesting ?? self.isRequesting,
          requestRecordError: requestRecordError ?? self.requestRecordError,
@@ -72,8 +67,8 @@ final class MainViewModel {
    @MainActor
    func onEvent(_ event: MainViewEvent) {
       switch event {
-      case  let .showTab(tab):
-         state.currectTab = tab
+      case let .showTab(tab):
+         state.currentTab = tab
       case .request:
          makeRequest()
       case .loadRecords:
@@ -85,14 +80,12 @@ final class MainViewModel {
    private func makeRequest() {
       guard !state.isRequesting else { return }
       
-      state = state.copy(
-         isRequesting: true,
-         requestRecordError: nil
-      )
+      state.requestRecordError = nil
+      state.isRequesting = true
       
       apiService.request{[weak self] result in
          guard let self else { return }
-         state.isRequesting = false
+         
          switch result {
          case .success(let response):
             state = state.copy(
@@ -104,9 +97,11 @@ final class MainViewModel {
             )
             saveRequest(response)
          case .failure(let error):
+            let remoteError = error as? RemoteApiService.Error
+            guard let remoteError else { return }
             state = state.copy(
                isRequesting: false,
-               requestRecordError: error.localizedDescription
+               requestRecordError: map(error: remoteError)
             )
          }
       }
@@ -117,9 +112,7 @@ final class MainViewModel {
          guard let self else { return }
          
          if let error = result {
-            state = state.copy(
-               loadRecordError: error.localizedDescription
-            )
+            state.loadRecordError = error.localizedDescription
          }
       }
    }
@@ -130,18 +123,23 @@ final class MainViewModel {
          guard let self else { return }
          switch result {
          case .empty:
-            state = state.copy(
-               listState: .loaded([])
-            )
+            state.weatherDataListState = .loaded([])
          case .found(let records):
-            state = state.copy(
-               listState: .loaded(records)
-            )
+            state.weatherDataListState = .loaded(records)
          case .failure(let error):
-            state = state.copy(
-               loadRecordError: error.localizedDescription
-            )
+            state.loadRecordError = error.localizedDescription
          }
+      }
+   }
+   
+   private func map(error: RemoteApiService.Error) -> String {
+      return switch error {
+      case .invalidData:
+         "Ups! something change on the Weather service. Please try again later."
+      case .invalidRequest:
+         "APIKey expired."
+      case .connectivity:
+         "Check your connection to internet."
       }
    }
 }
