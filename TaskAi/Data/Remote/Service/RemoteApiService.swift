@@ -7,7 +7,7 @@
 import Foundation
 
 public final class RemoteApiService: ApiService {
-   private let API_KEY = "ebc04bcc90msh3843ce42ca972a9p14020djsn250387630867"
+   private let API_KEY = "6a9e8eeb4fmsha482be912f494a6p18a446jsne191185866de"
    private let HOST = "open-weather13.p.rapidapi.com"
    
    private let url: URL
