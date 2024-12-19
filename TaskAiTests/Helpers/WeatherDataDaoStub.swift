@@ -10,7 +10,7 @@ import Foundation
 
 class DataStoreServiceStub: DataStoreService {
    
-   func insert(data: TaskAi.LocalWeatherData, date: Date, completion: @escaping ((any Error)?) -> Void) {
+   func insert(data: LocalWeatherData, date: Date, completion: @escaping ((any Error)?) -> Void) {
       
    }
    
