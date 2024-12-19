@@ -9,9 +9,21 @@ import SwiftUI
 
 @main
 struct TaskAiApp: App {
+   
+   private let viewModel = MainViewModel(
+      apiService: RemoteApiService(
+         url: URL(string: "https://open-weather13.p.rapidapi.com/city/landon/EN")!,
+         client: URLSessionHTTPClient()
+      ),
+      weatherDataDao: WeatherDataDao(connection: DBConnectionManager().connection)
+   )
+   
     var body: some Scene {
         WindowGroup {
-            ContentView()
+           MainScreen(
+              state: viewModel.state,
+              onEvent: viewModel.onEvent
+           )
         }
     }
 }

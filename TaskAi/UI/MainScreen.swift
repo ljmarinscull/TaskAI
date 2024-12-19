@@ -8,6 +8,8 @@ import SwiftUI
 import MapKit
 
 struct MainScreen: View {
+   @State private var isAlertPresented: Bool = false
+   
    let state: MainState
    let onEvent: (MainViewEvent)-> Void
    
@@ -15,6 +17,19 @@ struct MainScreen: View {
       MainContainer()
          .safeAreaInset(edge: .bottom){
             ButtonsContaniner()
+         }
+         .onChange(of: state.requestRecordError){
+            guard let _ = state.requestRecordError else {
+               return
+            }
+            isAlertPresented = true
+         }
+         .alert(isPresented: $isAlertPresented){
+            Alert(
+               title: Text("Error"),
+               message: Text("\(state.requestRecordError ?? "")"),
+               dismissButton: .default(Text("Got It"))
+            )
          }
    }
    
@@ -42,7 +57,7 @@ struct MainScreen: View {
    
    @ViewBuilder
    private func MainContainer() -> some View {
-      switch state.currectTab {
+      switch state.currentTab {
       case .map:
          MapFragment(data: state.currentMarker)
       case .list:
@@ -64,7 +79,11 @@ struct MainScreen: View {
    }
    
    @ViewBuilder
-   private func LoadingButton(_ title: String, isLoading: Bool, action: @escaping ()-> Void) -> some View {
+   private func LoadingButton(
+      _ title: String,
+      isLoading: Bool,
+      action: @escaping ()-> Void
+   ) -> some View {
       Button(action: action) {
          HStack{
             if isLoading {
@@ -93,6 +112,6 @@ struct MainScreen: View {
 #Preview {
    MainScreen(
       state: .init(),
-      onEvent: {_ in }
+      onEvent: {_ in}
    )
 }
