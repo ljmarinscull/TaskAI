@@ -14,7 +14,7 @@ class MainViewModelTests: XCTestCase {
       let (sut, _, _) = makeSUT()
       
       XCTAssertEqual(sut.state.currentMarker, makeInitialCoordinateMarkerData())
-      XCTAssertEqual(sut.state.currectTab, Tab.map)
+      XCTAssertEqual(sut.state.currentTab, Tab.map)
       XCTAssertEqual(sut.state.isLoading, false)
       XCTAssertEqual(sut.state.isRequesting, false)
       XCTAssertEqual(sut.state.requestRecordError, nil)
@@ -26,7 +26,7 @@ class MainViewModelTests: XCTestCase {
       let (sut, _, _) = makeSUT()
       
       sut.onEvent(.showTab(Tab.map))
-      XCTAssertEqual(sut.state.currectTab, Tab.map)
+      XCTAssertEqual(sut.state.currentTab, Tab.map)
    }
    
    @MainActor func test_event_requestUpdatesStateWithResquestOn200HttpResponse() {
@@ -55,7 +55,7 @@ class MainViewModelTests: XCTestCase {
       
       sut.onEvent(.request)
       XCTAssertEqual(sut.state.requestRecordError, nil)
-      api.complete(with: NSError(domain: "A error", code: 0))
+      api.complete(with: RemoteApiService.Error.connectivity)
       XCTAssertNotNil(sut.state.requestRecordError)
       XCTAssertEqual(sut.state.currentMarker, makeInitialCoordinateMarkerData())
    }
@@ -68,11 +68,43 @@ class MainViewModelTests: XCTestCase {
       XCTAssertEqual(api.requestedURLs.count, 1)
    }
    
+   @MainActor func test_event_requestOnSuccessApiResponseMakesAInsertionCall() {
+      let (sut, api, dao) = makeSUT()
+      
+      let response = LocalWeatherData(
+         name: "London",
+         latitude: 20.000000,
+         longitude: 21.000000,
+         weather: "Windy",
+         temp: 50,
+         humidity: 30
+      )
+      
+      sut.onEvent(.request)
+      api.complete(with: response, at: 0)
+
+      XCTAssertEqual(dao.insertCallCount, 1)
+   }
+   
+   @MainActor func test_event_requestOnErrorApiResponseDoesNotMakesAInsertionCall() {
+      let (sut, api, dao) = makeSUT()
+      
+      sut.onEvent(.request)
+      api.complete(with: RemoteApiService.Error.connectivity)
+      XCTAssertEqual(dao.insertCallCount, 0)
+   }
+   
+   @MainActor func test_event_loadRecordsMakesACallToRetrieveRecords() {
+      let (sut, _, dao) = makeSUT()
+      
+      sut.onEvent(.loadRecords)
+      XCTAssertEqual(dao.loadCallCount, 1)
+   }
    
    // MARK: - Helpers
    
-   @MainActor private func makeSUT(file: StaticString = #filePath, line: UInt = #line) -> (sut: MainViewModel, apiServiceStub: ApiServiceStub, localDataStoreStub: DataStoreServiceStub) {
-      let weatherDataDao = DataStoreServiceStub()
+   @MainActor private func makeSUT(file: StaticString = #filePath, line: UInt = #line) -> (sut: MainViewModel, apiServiceStub: ApiServiceStub, weatherDataDao: WeatherDataDaoStub) {
+      let weatherDataDao = WeatherDataDaoStub()
       let apiServiceStub = ApiServiceStub()
       let sut = MainViewModel(apiService: apiServiceStub, weatherDataDao: weatherDataDao)
       trackForMemoryLeaks(sut, file: file, line: line)
