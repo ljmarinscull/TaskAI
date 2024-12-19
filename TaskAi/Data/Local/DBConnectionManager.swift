@@ -24,7 +24,7 @@ final class DBConnectionManager {
    init() {
       do {
          // if not, then create the table
-         let statement = WeatherDataTable.table.create { t in
+         let statement = WeatherDataTable.table.create(ifNotExists: true) { t in
             t.column(WeatherDataTable.id, primaryKey: .autoincrement)
             t.column(WeatherDataTable.name)
             t.column(WeatherDataTable.weather)

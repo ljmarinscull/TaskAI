@@ -22,7 +22,7 @@ final class WeatherDataDao: DataStoreService {
       perform{ db, queue in
          queue.sync {
             do {
-               let result = try db.prepare(WeatherDataTable.table)
+               let result = try db.prepare(WeatherDataTable.table.order(WeatherDataTable.date.desc))
                let dateFormatter = DateFormatter()
                dateFormatter.dateFormat = "M/d/yyyy h:mm:ss a"
                
