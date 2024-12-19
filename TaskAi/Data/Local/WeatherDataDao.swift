@@ -8,7 +8,7 @@ import Foundation
 import SQLite
 
 final class WeatherDataDao: DataStoreService {
-   let connection: Connection
+   private let connection: Connection
    
    var queue: DispatchQueue = {
       return DispatchQueue(label: "com.lj.TaskAi.WeatherDataDao")

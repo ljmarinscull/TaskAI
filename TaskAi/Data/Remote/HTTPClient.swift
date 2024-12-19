@@ -16,7 +16,7 @@ public protocol HTTPClient {
 }
 
 struct UnExpectedValuesRepresentation: Error{}
-class URLSessionHTTPClient: HTTPClient {
+final class URLSessionHTTPClient: HTTPClient {
    private let session: URLSession
    
    init(session: URLSession = .shared) {

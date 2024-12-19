@@ -13,7 +13,6 @@ public enum LoadResquestResult{
 }
 
 public protocol DataStoreService {
-   
    typealias InsertCompletion = (Error?) -> Void
    typealias RetrieveCompletion = (Error?) -> Void
    
